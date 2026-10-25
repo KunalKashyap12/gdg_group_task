@@ -13,9 +13,14 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.cropdetector.backend.exception.ApiException;
 import com.cropdetector.backend.repository.UserRepository;
+import com.cropdetector.backend.security.GoogleTokenPayload;
+import com.cropdetector.backend.security.GoogleTokenVerifier;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -30,6 +35,9 @@ class AuthControllerTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @MockitoBean
+    private GoogleTokenVerifier googleTokenVerifier;
 
     @BeforeEach
     void setUp() {
@@ -101,5 +109,77 @@ class AuthControllerTest {
                 .content(json))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void googleAuthEndpointAuthenticatesWithIdToken() throws Exception {
+        when(googleTokenVerifier.verify("valid-google-id-token")).thenReturn(
+            new GoogleTokenPayload(
+                "google-sub-555",
+                "farmer.google@example.com",
+                true,
+                "Google Farmer",
+                "https://photos.google.com/pic.jpg",
+                "test-client-id",
+                "https://accounts.google.com",
+                9999999999L
+            )
+        );
+
+        String json = "{\"idToken\": \"valid-google-id-token\"}";
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").isNotEmpty())
+            .andExpect(jsonPath("$.email").value("farmer.google@example.com"))
+            .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    void googleAuthEndpointSupportsCredentialField() throws Exception {
+        when(googleTokenVerifier.verify("gis-credential-token")).thenReturn(
+            new GoogleTokenPayload(
+                "google-sub-666",
+                "gis.farmer@example.com",
+                true,
+                "GIS Farmer",
+                null,
+                "test-client-id",
+                "https://accounts.google.com",
+                9999999999L
+            )
+        );
+
+        String json = "{\"credential\": \"gis-credential-token\"}";
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").isNotEmpty())
+            .andExpect(jsonPath("$.email").value("gis.farmer@example.com"));
+    }
+
+    @Test
+    void googleAuthEndpointRejectsMissingToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    void googleAuthEndpointRejectsInvalidToken() throws Exception {
+        when(googleTokenVerifier.verify("invalid-token")).thenThrow(
+            new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Invalid or expired Google ID token."));
+
+        mockMvc.perform(post("/api/v1/auth/google")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idToken\": \"invalid-token\"}"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.code").value("INVALID_GOOGLE_TOKEN"));
     }
 }

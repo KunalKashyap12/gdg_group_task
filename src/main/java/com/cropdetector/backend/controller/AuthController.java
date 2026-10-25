@@ -32,4 +32,17 @@ public class AuthController {
     ) {
         return authService.login(request);
     }
+
+    @PostMapping("/google")
+    public AuthDtos.AuthResponse googleLogin(
+        @RequestBody(required = false) AuthDtos.GoogleAuthRequest request
+    ) {
+        String token = request != null ? request.resolveToken() : null;
+        if (token == null || token.isBlank()) {
+            throw new com.cropdetector.backend.exception.ApiException(
+                HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                "Google ID token is required in 'idToken' or 'credential'.");
+        }
+        return authService.loginWithGoogle(token);
+    }
 }

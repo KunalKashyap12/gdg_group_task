@@ -27,19 +27,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final com.cropdetector.backend.security.GoogleTokenVerifier googleTokenVerifier;
 
     public AuthService(
         UserRepository users,
         UserPreferencesRepository preferences,
         PasswordEncoder passwordEncoder,
         AuthenticationManager authenticationManager,
-        JwtService jwtService
+        JwtService jwtService,
+        com.cropdetector.backend.security.GoogleTokenVerifier googleTokenVerifier
     ) {
         this.users = users;
         this.preferences = preferences;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     @Transactional
@@ -72,6 +75,15 @@ public class AuthService {
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
         String email = normalizeEmail(request.email());
 
+        // Check if user exists but registered via Google OAuth without password
+        users.findByEmail(email).ifPresent(existingUser -> {
+            if (existingUser.getPasswordHash() == null) {
+                throw new com.cropdetector.backend.exception.ApiException(
+                    HttpStatus.UNAUTHORIZED, "OAUTH_USER_NO_PASSWORD",
+                    "This account was registered using Google Sign-In. Please sign in with Google.");
+            }
+        });
+
         try {
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -87,6 +99,60 @@ public class AuthService {
                 new com.cropdetector.backend.exception.ApiException(
                     HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
                     "Email or password is incorrect."));
+
+        return createResponse(user);
+    }
+
+    @Transactional
+    public AuthDtos.AuthResponse loginWithGoogle(String idToken) {
+        com.cropdetector.backend.security.GoogleTokenPayload payload =
+            googleTokenVerifier.verify(idToken);
+        String email = normalizeEmail(payload.email());
+
+        AppUser user = users.findByEmail(email).orElse(null);
+
+        if (user != null) {
+            boolean updated = false;
+            if (user.getGoogleSub() == null && payload.sub() != null) {
+                user.setGoogleSub(payload.sub());
+                updated = true;
+            }
+            if (user.getPictureUrl() == null && payload.picture() != null) {
+                user.setPictureUrl(payload.picture());
+                updated = true;
+            }
+            if ((user.getFullName() == null || user.getFullName().isBlank()) &&
+                payload.name() != null && !payload.name().isBlank()) {
+                user.setFullName(payload.name().trim());
+                updated = true;
+            }
+            if (updated) {
+                user = users.save(user);
+            }
+        } else {
+            String fullName = payload.name() != null && !payload.name().isBlank()
+                ? payload.name().trim()
+                : email.split("@")[0];
+
+            user = new AppUser(
+                email,
+                fullName,
+                "GOOGLE",
+                payload.sub(),
+                payload.picture()
+            );
+
+            try {
+                user = users.saveAndFlush(user);
+            } catch (DataIntegrityViolationException ex) {
+                user = users.findByEmail(email)
+                    .orElseThrow(() -> new com.cropdetector.backend.exception.ApiException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "USER_CREATION_FAILED",
+                        "Failed to initialize user account."));
+            }
+
+            preferences.save(new UserPreferences(user.getId()));
+        }
 
         return createResponse(user);
     }

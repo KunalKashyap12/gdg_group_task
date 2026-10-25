@@ -26,11 +26,20 @@ public class AppUser implements UserDetails {
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 100)
+    @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
     @Column(name = "full_name", length = 100)
     private String fullName;
+
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    private String authProvider = "LOCAL";
+
+    @Column(name = "google_sub", length = 100)
+    private String googleSub;
+
+    @Column(name = "picture_url", length = 500)
+    private String pictureUrl;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -40,21 +49,50 @@ public class AppUser implements UserDetails {
     public AppUser(String email, String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
+        this.authProvider = "LOCAL";
+    }
+
+    public AppUser(String email, String fullName, String authProvider, String googleSub, String pictureUrl) {
+        this.email = email;
+        this.fullName = fullName;
+        this.authProvider = authProvider != null ? authProvider : "LOCAL";
+        this.googleSub = googleSub;
+        this.pictureUrl = pictureUrl;
     }
 
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = Instant.now();
+        if (authProvider == null) authProvider = "LOCAL";
     }
 
     public UUID getId() { return id; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public String getFullName() { return fullName; }
+    public String getAuthProvider() { return authProvider; }
+    public String getGoogleSub() { return googleSub; }
+    public String getPictureUrl() { return pictureUrl; }
     public Instant getCreatedAt() { return createdAt; }
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void setAuthProvider(String authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public void setGoogleSub(String googleSub) {
+        this.googleSub = googleSub;
+    }
+
+    public void setPictureUrl(String pictureUrl) {
+        this.pictureUrl = pictureUrl;
     }
 
     @Override

@@ -35,7 +35,9 @@ public class ProfileService {
         return new AuthDtos.ProfileResponse(
             user.getId().toString(),
             user.getEmail(),
-            user.getFullName());
+            user.getFullName(),
+            user.getAuthProvider(),
+            user.getPictureUrl());
     }
 
     @Transactional
@@ -49,7 +51,9 @@ public class ProfileService {
         return new AuthDtos.ProfileResponse(
             user.getId().toString(),
             user.getEmail(),
-            user.getFullName());
+            user.getFullName(),
+            user.getAuthProvider(),
+            user.getPictureUrl());
     }
 
     @Transactional(readOnly = true)

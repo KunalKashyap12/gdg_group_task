@@ -80,6 +80,31 @@ public class ApiDocumentationController {
                         "responses", Map.of("200", Map.of("description", "JWT token and user info"))
                     )
                 ),
+                "/api/v1/auth/google", Map.of(
+                    "post", Map.of(
+                        "summary", "Authenticate or register via Google ID token",
+                        "description", "Exchanges a Google ID token (from Google Sign-In or GIS) for a standard application Bearer JWT.",
+                        "requestBody", Map.of(
+                            "required", true,
+                            "content", Map.of(
+                                "application/json", Map.of(
+                                    "schema", Map.of(
+                                        "type", "object",
+                                        "properties", Map.of(
+                                            "idToken", Map.of("type", "string", "description", "Google ID token JWT"),
+                                            "credential", Map.of("type", "string", "description", "Google Identity Services credential token")
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        "responses", Map.of(
+                            "200", Map.of("description", "Authentication successful, returns JWT Bearer token"),
+                            "400", Map.of("description", "Missing ID token"),
+                            "401", Map.of("description", "Invalid, expired, or audience-mismatched Google token")
+                        )
+                    )
+                ),
                 "/api/v1/users/me", Map.of(
                     "get", Map.of(
                         "summary", "Get current user profile",
@@ -254,6 +279,17 @@ public class ApiDocumentationController {
                             <span>/api/v1/auth/login</span>
                         </div>
                         <p class="endpoint-desc">Authenticate existing user with email and password to receive a JWT access token.</p>
+                    </div>
+
+                    <div class="endpoint-card">
+                        <div class="endpoint-header">
+                            <span class="badge badge-post">POST</span>
+                            <span>/api/v1/auth/google</span>
+                        </div>
+                        <p class="endpoint-desc">Authenticate or auto-register using a Google ID token from web (GIS) or mobile apps. Strictly validates against Google's token verification infrastructure and returns a JWT access token.</p>
+                        <pre>curl -X POST http://localhost:8080/api/v1/auth/google \\
+  -H "Content-Type: application/json" \\
+  -d '{"idToken": "eyJhbGciOiJSUzI1NiIs..."}'</pre>
                     </div>
 
                     <div class="endpoint-card">

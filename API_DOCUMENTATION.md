@@ -37,6 +37,7 @@ Tokens are valid for **1 hour** by default and can be obtained via `/api/v1/auth
 | `GET` | `/api/v1/crops/{cropId}` | **Public** | Get details, capture tips & guidance for a specific crop |
 | `POST` | `/api/v1/auth/register` | **Public** | Register new farmer account |
 | `POST` | `/api/v1/auth/login` | **Public** | Authenticate existing user |
+| `POST` | `/api/v1/auth/google` | **Public** | Authenticate or register via Google ID token (SPA / Mobile) |
 | `GET` | `/api/v1/users/me` | **Authenticated** | Get authenticated user profile |
 | `PATCH` | `/api/v1/users/me` | **Authenticated** | Update user profile full name |
 | `GET` | `/api/v1/users/me/preferences` | **Authenticated** | Get language & notification preferences |
@@ -237,8 +238,64 @@ Fetch a specific crop's metadata and guidelines (e.g., `/api/v1/crops/potato`, `
 }
 ```
 
+### `POST /api/v1/auth/google`
+Authenticate or register a user using a Google ID token. Ideal for Single Page Applications (React, Vue), mobile apps (Flutter, Android), or Google One Tap / Google Identity Services (GIS).
+
+- **Strict Server Verification:** The backend strictly verifies the token against Google's token verification infrastructure, confirms that `aud` matches the configured server `GOOGLE_CLIENT_ID`, and validates that the farmer's Google email address is verified.
+- **Auto-Provisioning & Account Linking:** If the farmer does not have an account, one is automatically created with language preferences and `authProvider: "GOOGLE"`. If an account already exists with the same email, it is linked and profile picture updated.
+
+#### Request Body
+Accepts either `idToken` or `credential` (from Google Identity Services):
+```json
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+}
+```
+*or*
+```json
+{
+  "credential": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "tokenType": "Bearer",
+  "expiresInSeconds": 3600,
+  "userId": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+  "email": "farmer@example.com"
+}
+```
+
+#### Error Codes
+- `400 INVALID_INPUT`: ID token is missing or empty.
+- `401 INVALID_GOOGLE_TOKEN`: Expired, malformed, or fake Google token.
+- `401 INVALID_GOOGLE_AUDIENCE`: Token `aud` does not match the configured `GOOGLE_CLIENT_ID`.
+- `401 UNVERIFIED_GOOGLE_EMAIL`: The Google account email has not been verified by Google.
+- `500 GOOGLE_AUTH_NOT_CONFIGURED`: Server operator has not configured `GOOGLE_CLIENT_ID`.
+- `502 GOOGLE_SERVICE_ERROR`: Failed to reach Google verification endpoint.
+
+#### Frontend Client Integration Example (HTML / JS GIS)
+```javascript
+// Using Google Identity Services (GIS)
+google.accounts.id.initialize({
+  client_id: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+  callback: async (response) => {
+    const res = await fetch("http://localhost:8080/api/v1/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const authData = await res.json();
+    localStorage.setItem("token", authData.accessToken);
+  }
+});
+```
+
 ### `GET /api/v1/users/me`
-Fetches user ID, email, and full name.
+Fetches user ID, email, full name, auth provider (`LOCAL` or `GOOGLE`), and profile picture URL.
 
 ### `PATCH /api/v1/users/me`
 Updates user profile name: `{"fullName": "New Name"}`.
