@@ -1,0 +1,25 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Build outputs
+target/
+*.class
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.apt_generated/
+
+# Environment and sensitive files
+.env
+*.log
+
+# Documentation and notes
+*.md
+HELP.md
