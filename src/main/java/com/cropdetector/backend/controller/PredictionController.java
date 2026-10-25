@@ -31,7 +31,8 @@ public class PredictionController {
         @RequestPart("image") MultipartFile image,
         @RequestParam(required = false) String crop
     ) {
-        return predictionService.predict(user.getId(), image, crop);
+        UUID userId = user != null ? user.getId() : null;
+        return predictionService.predict(userId, image, crop);
     }
 
     @GetMapping
