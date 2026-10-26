@@ -24,6 +24,16 @@ public class ApiDocumentationController {
                 Map.of("url", "http://localhost:8080", "description", "Local Development Server")
             ),
             "paths", Map.of(
+                "/api/crops/diagnose", Map.of(
+                    "post", Map.of(
+                        "summary", "Direct Leaf Diagnosis via Live ML Microservice",
+                        "description", "Public endpoint forwarding leaf photo to live ONNX microservice. Returns diagnosis, confidence, top-k candidate list, and agricultural disclaimer.",
+                        "responses", Map.of(
+                            "200", Map.of("description", "Diagnosis returned successfully with prediction and top-k"),
+                            "400", Map.of("description", "Missing or empty image file")
+                        )
+                    )
+                ),
                 "/api/v1/predictions", Map.of(
                     "post", Map.of(
                         "summary", "Upload leaf image and predict disease",

@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/register",
                                  "/api/v1/auth/login",
                                  "/api/v1/auth/google").permitAll()
-                .requestMatchers("/api/v1/crops/**").permitAll()
+                .requestMatchers("/api/crops/**", "/api/v1/crops/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/predictions").permitAll()
                 .requestMatchers("/api/v1/docs/**",
                                  "/v3/api-docs/**",
