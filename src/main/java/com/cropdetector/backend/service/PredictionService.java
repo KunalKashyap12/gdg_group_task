@@ -47,13 +47,24 @@ public class PredictionService {
         var validImage = imageValidator.validate(image);
         var result = mlClient.predict(validImage, crop);
 
-        boolean uncertain = result.confidence() < minimumConfidence;
-        String status = uncertain ? "UNCERTAIN" : "COMPLETED";
+        boolean uncertain = result.lowConfidence() || result.confidence() < minimumConfidence;
+        String status = !result.isLeaf() ? "NOT_A_LEAF" : (uncertain ? "UNCERTAIN" : "COMPLETED");
 
-        List<String> guidance = uncertain
-            ? List.of("The result is uncertain. Try a clearer leaf image.",
-                      "Ask a local agricultural expert to confirm the symptoms.")
-            : generalGuidance;
+        java.util.List<String> guidance = new java.util.ArrayList<>();
+        if (result.message() != null && !result.message().isBlank()) {
+            guidance.add(result.message());
+        }
+
+        if (uncertain) {
+            guidance.add("The result is uncertain. Try capturing a clearer, well-lit photo of a single leaf flat against a neutral background.");
+            guidance.add("Ask a local agricultural expert to confirm the symptoms.");
+        } else {
+            guidance.addAll(generalGuidance);
+        }
+
+        if (result.disclaimer() != null && !result.disclaimer().isBlank()) {
+            guidance.add(result.disclaimer());
+        }
 
         Prediction prediction = new Prediction(
             userId,
