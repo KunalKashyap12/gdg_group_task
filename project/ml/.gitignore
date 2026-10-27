@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local data cache (except metadata & samples)
+data/raw/
+data/processed/
+data/processed_*/
+data/plantdoc_field_test/
+data/real_test/
+
+# Heavy training checkpoints (only ONNX is tracked for inference)
+models/*.pt
+models/archive/
+!models/crop_disease_model.onnx
