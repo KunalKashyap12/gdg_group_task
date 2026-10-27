@@ -65,11 +65,17 @@ public class CropDiagnosisController {
             UUID userId = user != null ? user.getId() : null;
             String cropName = (crop != null && !crop.isBlank())
                     ? crop.trim()
-                    : (result.getPrediction() != null ? result.getPrediction().getCrop() : null);
+                    : (result.getPrediction() != null && result.getPrediction().getCrop() != null && !result.getPrediction().getCrop().isBlank()
+                        ? result.getPrediction().getCrop().trim()
+                        : null);
 
             String label = (result.getPrediction() != null && result.getPrediction().getLabel() != null)
-                    ? result.getPrediction().getLabel()
+                    ? result.getPrediction().getLabel().trim()
                     : "Unknown";
+
+            if ((cropName == null || cropName.isBlank()) && label.contains("___")) {
+                cropName = label.split("___")[0].trim();
+            }
 
             double confidence = result.getPrediction() != null ? result.getPrediction().getConfidence() : 0.0;
             String status = result.isLowConfidence() ? "UNCERTAIN" : (result.isLeaf() ? "COMPLETED" : "NOT_A_LEAF");

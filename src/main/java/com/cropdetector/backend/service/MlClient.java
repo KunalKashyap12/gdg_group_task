@@ -20,6 +20,8 @@ public class MlClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MlResponse(
+        String crop,
+        String disease,
         String predictedClass,
         double confidence,
         String modelVersion,
@@ -28,9 +30,14 @@ public class MlClient {
         boolean lowConfidence,
         boolean isLeaf
     ) {
-        // Backward-compatible constructor
+        // Backward-compatible constructors
         public MlResponse(String predictedClass, double confidence, String modelVersion) {
-            this(predictedClass, confidence, modelVersion, null, null, false, true);
+            this(null, null, predictedClass, confidence, modelVersion, null, null, false, true);
+        }
+
+        public MlResponse(String predictedClass, double confidence, String modelVersion,
+                          String message, String disclaimer, boolean lowConfidence, boolean isLeaf) {
+            this(null, null, predictedClass, confidence, modelVersion, message, disclaimer, lowConfidence, isLeaf);
         }
     }
 
@@ -45,9 +52,31 @@ public class MlClient {
         );
 
         PredictionItem item = response.getPrediction();
-        String predictedClass = (item != null && item.getLabel() != null && !item.getLabel().isBlank())
-                ? item.getLabel()
-                : (item != null && item.getDisease() != null ? item.getDisease() : "Healthy");
+        String cropName = (item != null && item.getCrop() != null && !item.getCrop().isBlank())
+                ? item.getCrop().trim()
+                : null;
+
+        String diseaseName = (item != null && item.getDisease() != null && !item.getDisease().isBlank())
+                ? item.getDisease().trim()
+                : null;
+
+        String label = (item != null && item.getLabel() != null && !item.getLabel().isBlank())
+                ? item.getLabel().trim()
+                : null;
+
+        if (label != null && label.contains("___")) {
+            String[] parts = label.split("___", 2);
+            if (cropName == null || cropName.isBlank()) {
+                cropName = parts[0].trim();
+            }
+            if (diseaseName == null || diseaseName.isBlank()) {
+                diseaseName = parts[1].replace('_', ' ').trim();
+            }
+        }
+
+        String predictedClass = (label != null)
+                ? label
+                : (diseaseName != null ? diseaseName : "Healthy");
 
         double confidence = (item != null) ? item.getConfidence() : 0.0;
         String modelVersion = response.getModelVersion() != null ? response.getModelVersion() : "1.0.0";
@@ -57,6 +86,8 @@ public class MlClient {
         boolean isLeaf = response.isLeaf();
 
         return new MlResponse(
+                cropName,
+                diseaseName,
                 predictedClass,
                 confidence,
                 modelVersion,

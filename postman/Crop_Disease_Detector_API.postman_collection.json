@@ -1,0 +1,1685 @@
+{
+  "info": {
+    "_postman_id": "c7a8b3d1-9f20-4e58-b129-57e3f283d5a9",
+    "name": "Local Crop Disease Detector API",
+    "description": "# \ud83c\udf31 Crop Disease Detector & Agricultural Advisory API\n\nRESTful backend service for farmer accounts, leaf disease diagnosis via ONNX deep-learning microservice, preventive agricultural guidance, and user prediction history.\n\n### \ud83d\udccc Environments\n- **Local Server**: `http://localhost:8080`\n- **Production Render Server**: `https://crop-backend-r14q.onrender.com`\n- **Live ML Microservice**: `https://gdg-grp-task-ml-2.onrender.com`\n\n### \ud83d\udd10 Authentication Strategy\nAuthenticated endpoints require a standard Bearer JWT token in the `Authorization` header:\n```http\nAuthorization: Bearer {{accessToken}}\n```\nWhen you run the **Register** or **Login** requests in this collection, Postman's built-in test script will **automatically save** the JWT token into your environment variable `{{accessToken}}`.\n\n### \ud83c\udf43 Supported Crops\n- **Tomato** (*Solanum lycopersicum*)\n- **Potato** (*Solanum tuberosum*)\n- **Apple** (*Malus domestica*)\n- **Corn** (*Zea mays*)\n- **Pepper, Grape, Orange, Peach, Cherry, Blueberry, Raspberry, Squash, Strawberry, Soybean*\n\n### \u26a0\ufe0f Photo Guidelines for Prediction\n- Max image file size: **5 MB**\n- Formats: JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP\n- Confidence guardrail: If confidence < 0.70, prediction status is marked `UNCERTAIN`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "predictionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "description": "User registration, email/password login, and Google OAuth exchange endpoints. Successfully authenticating sets the `accessToken` environment variable automatically.",
+      "item": [
+        {
+          "name": "Register Farmer User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Token returned and saved to environment\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.expect(jsonData.tokenType).to.eql(\"Bearer\");",
+                  "    if (jsonData.accessToken) {",
+                  "        pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "        pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+                  "        if (jsonData.userId) {",
+                  "            pm.environment.set(\"userId\", jsonData.userId);",
+                  "        }",
+                  "        console.log(\"Saved accessToken:\", jsonData.accessToken.substring(0, 15) + \"...\");",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"farmer_{{$timestamp}}@example.com\",\n  \"password\": \"Password123!\",\n  \"fullName\": \"Ramesh Patel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new farmer account.\n\n### Request Body\n- `email` (string, required): Valid email address (max 254 chars)\n- `password` (string, required): Password between 8 and 72 characters\n- `fullName` (string, required): Full name of the farmer/user (max 100 chars)\n\n### Automated Postman Action\nUpon receiving `201 Created`, the test script automatically extracts `accessToken` and updates the environment variable `{{accessToken}}`."
+          },
+          "response": [
+            {
+              "name": "201 Created - Registration Successful",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"Password123!\",\n  \"fullName\": \"Ramesh Patel\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmYXJtZXJAZXhhbXBsZS5jb20iLCJpYXQiOjE3MD...',\n  \"tokenType\": \"Bearer\",\n  \"expiresInSeconds\": 86400,\n  \"userId\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"email\": \"farmer@example.com\"\n}"
+            },
+            {
+              "name": "409 Conflict - Email Already Exists",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"Password123!\",\n  \"fullName\": \"Ramesh Patel\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"EMAIL_EXISTS\",\n  \"message\": \"An account with this email already exists.\",\n  \"timestamp\": \"2026-10-26T17:40:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Save access token to environment\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "    pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+                  "    if (jsonData.userId) {",
+                  "        pm.environment.set(\"userId\", jsonData.userId);",
+                  "    }",
+                  "    console.log(\"Saved accessToken:\", jsonData.accessToken.substring(0, 15) + \"...\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates an existing user and returns a standard JWT Bearer access token.\n\n### Request Body\n- `email` (string, required): Registered user email\n- `password` (string, required): Password\n\n### Automated Postman Action\nAutomatically extracts `accessToken` and updates the environment variable `{{accessToken}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK - Login Successful",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"Password123!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmYXJtZXJAZXhhbXBsZS5jb20iLCJpYXQiOjE3MD...',\n  \"tokenType\": \"Bearer\",\n  \"expiresInSeconds\": 86400,\n  \"userId\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"email\": \"farmer@example.com\"\n}"
+            },
+            {
+              "name": "401 Unauthorized - Bad Credentials",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"farmer@example.com\",\n  \"password\": \"WrongPassword!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"INVALID_CREDENTIALS\",\n  \"message\": \"Invalid email or password.\",\n  \"timestamp\": \"2026-10-26T17:40:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Google Sign-In / OAuth Exchange",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.accessToken) {",
+                  "        pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "        pm.collectionVariables.set(\"accessToken\", jsonData.accessToken);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "google"
+              ]
+            },
+            "description": "Authenticates or automatically registers a farmer using a Google ID Token (e.g. from Google Identity Services on Web or Android/iOS).\n\n### Request Body\n- `idToken` (string, optional if `credential` provided): Google JWT ID token\n- `credential` (string, optional): Google GIS credential string\n\nValidates against Google token verification servers and returns an internal JWT Bearer token."
+          },
+          "response": [
+            {
+              "name": "200 OK - Google Auth Successful",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"idToken\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/auth/google",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "google"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJnb29nbGVfdXNlckBleGFtcGxlLmNvbSIsImlhdCI6MTcw...',\n  \"tokenType\": \"Bearer\",\n  \"expiresInSeconds\": 86400,\n  \"userId\": \"8d9e6679-7425-40de-944b-e07fc1f90bf8\",\n  \"email\": \"google_user@example.com\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Leaf Disease Diagnosis & Predictions",
+      "description": "Core computer vision endpoints for diagnosing plant diseases from leaf photographs, receiving preventative management guidance, and tracking diagnosis history.",
+      "item": [
+        {
+          "name": "Direct Leaf Diagnosis (Live ML Service)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "",
+                  "description": "Leaf photo file (JPEG / PNG / WebP, max 5MB)"
+                },
+                {
+                  "key": "crop",
+                  "value": "tomato",
+                  "type": "text",
+                  "description": "Optional crop hint (e.g. tomato, potato, apple, corn, pepper)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/diagnose",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crops",
+                "diagnose"
+              ]
+            },
+            "description": "### Direct Leaf Diagnosis Endpoint\n- **Route:** `POST /api/crops/diagnose` (also available at `/api/v1/crops/diagnose`)\n- **Public Access:** Fully accessible for web / mobile clients without requiring login.\n- **Authentication Support:** If an `Authorization: Bearer <token>` header is present, the diagnosis is automatically saved to the farmer's history.\n\n### Form Data Parameters\n- `image` (binary file, required): Photo of crop leaf\n- `crop` (text, optional): Crop name hint (e.g., `tomato`, `potato`, `apple`, `pepper`, `corn`)\n\n### Response Highlights\n- `prediction.crop`: Identified crop species\n- `prediction.disease`: Identified pathogen or health status\n- `prediction.confidence`: Confidence level (0.0 to 1.0)\n- `top_k`: List of top alternative classifications with respective scores\n- `low_confidence`: Boolean flag indicating if confidence is below safety threshold\n- `disclaimer`: Official agricultural advisory disclaimer"
+          },
+          "response": [
+            {
+              "name": "200 OK - Diagnosis Complete (High Confidence)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "leaf.jpg"
+                    },
+                    {
+                      "key": "crop",
+                      "value": "pepper",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/crops/diagnose",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "crops",
+                    "diagnose"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"success\",\n  \"is_leaf\": true,\n  \"prediction\": {\n    \"class_id\": 13,\n    \"crop\": \"Pepper\",\n    \"disease\": \"Bacterial_spot\",\n    \"label\": \"Pepper___Bacterial_spot\",\n    \"confidence\": 0.9854\n  },\n  \"top_k\": [\n    {\n      \"label\": \"Pepper___Bacterial_spot\",\n      \"confidence\": 0.9854\n    },\n    {\n      \"label\": \"Pepper___healthy\",\n      \"confidence\": 0.0121\n    },\n    {\n      \"label\": \"Tomato___Bacterial_spot\",\n      \"confidence\": 0.0018\n    }\n  ],\n  \"low_confidence\": false,\n  \"threshold\": 0.7,\n  \"message\": \"Disease detected: Bacterial_spot on Pepper\",\n  \"model_version\": \"mobilenetv3_large_v1\",\n  \"inference_time_ms\": 42.5,\n  \"disclaimer\": \"This diagnosis is AI-generated for advisory purposes. Always consult a certified local agricultural extension officer before chemical intervention.\"\n}"
+            },
+            {
+              "name": "400 Bad Request - Missing Image",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "crop",
+                      "value": "tomato",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/crops/diagnose",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "crops",
+                    "diagnose"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"INVALID_IMAGE\",\n  \"message\": \"Image file is missing or empty.\",\n  \"timestamp\": \"2026-10-26T17:40:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Predict Leaf Disease & Save Guidance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Save predictionId to environment\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.predictionId) {",
+                  "        pm.environment.set(\"predictionId\", jsonData.predictionId);",
+                  "        pm.collectionVariables.set(\"predictionId\", jsonData.predictionId);",
+                  "        console.log(\"Saved predictionId:\", jsonData.predictionId);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "",
+                  "description": "Leaf image file (JPEG or PNG, max 5MB)"
+                },
+                {
+                  "key": "crop",
+                  "value": "tomato",
+                  "type": "text",
+                  "description": "Optional crop identifier (e.g., tomato, potato, apple, corn)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/predictions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "predictions"
+              ]
+            },
+            "description": "Submits a leaf image to generate a prediction with non-prescriptive, farmer-friendly management guidance.\n\n### Authentication\n- **Optional Bearer Token:** If provided, prediction is linked to the user account.\n- **Anonymous:** Permitted for guest users.\n\n### Image Constraints\n- Max file size: **5 MB**\n- Max resolution: **6000 x 6000 px** (20 Megapixels)\n- Allowed formats: `image/jpeg`, `image/png`\n\n### Response Guardrails\n- If `confidence < 0.70`, status becomes `UNCERTAIN` and advisory alerts are added to `guidance`."
+          },
+          "response": [
+            {
+              "name": "201 Created - High Confidence",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "tomato_leaf.jpg"
+                    },
+                    {
+                      "key": "crop",
+                      "value": "tomato",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"predictionId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"crop\": \"tomato\",\n  \"predictedDisease\": \"Tomato Early Blight (Alternaria solani)\",\n  \"confidence\": 0.942,\n  \"status\": \"COMPLETED\",\n  \"modelVersion\": \"1.0.0\",\n  \"guidance\": [\n    \"Inspect plants regularly and monitor changes in leaf appearance.\",\n    \"Avoid unnecessary wetting of leaves when watering.\",\n    \"Handle affected plant material appropriately.\",\n    \"Seek confirmation from a local agricultural expert if symptoms persist.\"\n  ],\n  \"expertConfirmationRecommended\": false,\n  \"createdAt\": \"2026-10-26T17:50:00Z\"\n}"
+            },
+            {
+              "name": "201 Created - Uncertain Confidence (< 0.70)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "blurry_leaf.jpg"
+                    },
+                    {
+                      "key": "crop",
+                      "value": "tomato",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"predictionId\": \"c8d0a2f1-6789-4b12-98ab-3456789abcde\",\n  \"crop\": \"tomato\",\n  \"predictedDisease\": \"Tomato Early Blight (Alternaria solani)\",\n  \"confidence\": 0.54,\n  \"status\": \"UNCERTAIN\",\n  \"modelVersion\": \"1.0.0\",\n  \"guidance\": [\n    \"The result is uncertain. Try a clearer leaf image.\",\n    \"Ask a local agricultural expert to confirm the symptoms.\"\n  ],\n  \"expertConfirmationRecommended\": true,\n  \"createdAt\": \"2026-10-26T17:51:00Z\"\n}"
+            },
+            {
+              "name": "413 Payload Too Large - Exceeds 5MB",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions"
+                  ]
+                }
+              },
+              "status": "Payload Too Large",
+              "code": 413,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"FILE_TOO_LARGE\",\n  \"message\": \"Uploaded image exceeds maximum size of 5MB.\",\n  \"timestamp\": \"2026-10-26T17:52:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Prediction History (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/predictions?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "predictions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Zero-indexed page number (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "20",
+                  "description": "Number of records per page (default: 20, max: 50)"
+                }
+              ]
+            },
+            "description": "Retrieves the authenticated farmer's historical diagnoses sorted by newest first.\n\n### Authentication\n- **Requires Bearer Token:** `Authorization: Bearer {{accessToken}}`\n\n### Query Parameters\n- `page` (integer, optional, default: 0)\n- `size` (integer, optional, default: 20, max: 50)"
+          },
+          "response": [
+            {
+              "name": "200 OK - Paginated History",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions?page=0&size=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"content\": [\n    {\n      \"predictionId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"crop\": \"tomato\",\n      \"predictedDisease\": \"Tomato Early Blight (Alternaria solani)\",\n      \"confidence\": 0.942,\n      \"status\": \"COMPLETED\",\n      \"modelVersion\": \"1.0.0\",\n      \"guidance\": [\n        \"Inspect plants regularly and monitor changes in leaf appearance.\",\n        \"Avoid unnecessary wetting of leaves when watering.\"\n      ],\n      \"expertConfirmationRecommended\": false,\n      \"createdAt\": \"2026-10-26T17:50:00Z\"\n    }\n  ],\n  \"pageable\": {\n    \"pageNumber\": 0,\n    \"pageSize\": 20,\n    \"sort\": {\"sorted\": true, \"unsorted\": false, \"empty\": false},\n    \"offset\": 0,\n    \"paged\": true,\n    \"unpaged\": false\n  },\n  \"totalPages\": 1,\n  \"totalElements\": 1,\n  \"last\": true,\n  \"size\": 20,\n  \"number\": 0,\n  \"numberOfElements\": 1,\n  \"first\": true,\n  \"empty\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Prediction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/predictions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "predictions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{predictionId}}",
+                  "description": "UUID of the prediction record"
+                }
+              ]
+            },
+            "description": "Retrieves the full details of a specific prediction by its unique UUID.\n\n### Authentication\n- **Requires Bearer Token:** `Authorization: Bearer {{accessToken}}`\n- Farmer can only view their own predictions (returns 404/403 otherwise)."
+          },
+          "response": [
+            {
+              "name": "200 OK - Prediction Details",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions",
+                    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"predictionId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"crop\": \"tomato\",\n  \"predictedDisease\": \"Tomato Early Blight (Alternaria solani)\",\n  \"confidence\": 0.942,\n  \"status\": \"COMPLETED\",\n  \"modelVersion\": \"1.0.0\",\n  \"guidance\": [\n    \"Inspect plants regularly and monitor changes in leaf appearance.\",\n    \"Avoid unnecessary wetting of leaves when watering.\",\n    \"Handle affected plant material appropriately.\",\n    \"Seek confirmation from a local agricultural expert if symptoms persist.\"\n  ],\n  \"expertConfirmationRecommended\": false,\n  \"createdAt\": \"2026-10-26T17:50:00Z\"\n}"
+            },
+            {
+              "name": "404 Not Found - Record Does Not Exist",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions/00000000-0000-0000-0000-000000000000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions",
+                    "00000000-0000-0000-0000-000000000000"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"NOT_FOUND\",\n  \"message\": \"Prediction not found.\",\n  \"timestamp\": \"2026-10-26T17:53:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Prediction by ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/predictions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "predictions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{predictionId}}",
+                  "description": "UUID of the prediction record to delete"
+                }
+              ]
+            },
+            "description": "Deletes a specific prediction from the user's history.\n\n### Authentication\n- **Requires Bearer Token:** `Authorization: Bearer {{accessToken}}`"
+          },
+          "response": [
+            {
+              "name": "204 No Content - Successfully Deleted",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/predictions/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "predictions",
+                    "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  ]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "body": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Crop Catalog & Advisory",
+      "description": "Read-only crop library providing biological classifications, known supported diseases, recommended photography practices, and preventative management tips.",
+      "item": [
+        {
+          "name": "List All Supported Crops",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/crops",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "crops"
+              ]
+            },
+            "description": "Returns the complete catalog of supported crops with their disease registries and photography capture guidelines.\n\n### Public Access\nNo authentication token required."
+          },
+          "response": [
+            {
+              "name": "200 OK - Supported Crops List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/crops",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "crops"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"tomato\",\n    \"name\": \"Tomato\",\n    \"scientificName\": \"Solanum lycopersicum\",\n    \"description\": \"Widely cultivated warm-season crop susceptible to foliar fungal and bacterial blights.\",\n    \"supportedDiseases\": [\n      \"Bacterial Spot\",\n      \"Early Blight\",\n      \"Late Blight\",\n      \"Leaf Mold\",\n      \"Septoria Leaf Spot\",\n      \"Spider Mites\",\n      \"Target Spot\",\n      \"Yellow Leaf Curl Virus\",\n      \"Mosaic Virus\",\n      \"Healthy\"\n    ],\n    \"captureTips\": [\n      \"Capture both upper and lower surface of affected leaves.\",\n      \"Ensure lesions are clearly focused with minimal shadows.\",\n      \"Hold the phone steady 15-30 cm away from the leaf.\"\n    ],\n    \"preventiveTips\": [\n      \"Avoid overhead irrigation; water at soil level.\",\n      \"Rotate with non-solanaceous crops every 2-3 years.\",\n      \"Prune lower suckers to improve air circulation.\"\n    ]\n  },\n  {\n    \"id\": \"potato\",\n    \"name\": \"Potato\",\n    \"scientificName\": \"Solanum tuberosum\",\n    \"description\": \"Starchy tuber crop vulnerable to rapid defoliation by late blight.\",\n    \"supportedDiseases\": [\n      \"Early Blight\",\n      \"Late Blight\",\n      \"Healthy\"\n    ],\n    \"captureTips\": [\n      \"Inspect leaves from both canopy top and shaded lower canopy.\"\n    ],\n    \"preventiveTips\": [\n      \"Plant certified disease-free seed tubers.\",\n      \"Destroy infected volunteer plants.\"\n    ]\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Crop by ID",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/crops/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "crops",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "tomato",
+                  "description": "Crop identifier: tomato, potato, apple, corn, grape, pepper"
+                }
+              ]
+            },
+            "description": "Fetches metadata, photography tips, and management guidance for a single crop.\n\n### Path Variables\n- `id` (string, required): e.g., `tomato`, `potato`, `apple`, `corn`"
+          },
+          "response": [
+            {
+              "name": "200 OK - Crop Details",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/crops/tomato",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "crops",
+                    "tomato"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"tomato\",\n  \"name\": \"Tomato\",\n  \"scientificName\": \"Solanum lycopersicum\",\n  \"description\": \"Widely cultivated warm-season crop susceptible to foliar fungal and bacterial blights.\",\n  \"supportedDiseases\": [\n    \"Bacterial Spot\",\n    \"Early Blight\",\n    \"Late Blight\",\n    \"Leaf Mold\",\n    \"Septoria Leaf Spot\",\n    \"Healthy\"\n  ],\n  \"captureTips\": [\n    \"Capture both upper and lower surface of affected leaves.\",\n    \"Ensure lesions are clearly focused with minimal shadows.\"\n  ],\n  \"preventiveTips\": [\n    \"Avoid overhead irrigation; water at soil level.\",\n    \"Rotate with non-solanaceous crops every 2-3 years.\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. User Profile & Preferences",
+      "description": "Endpoints to manage the logged-in farmer's account details, localization (language English / Hindi), and notification preferences.",
+      "item": [
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Retrieves the currently authenticated user's profile information.\n\n### Authentication\n- **Requires Bearer Token:** `Authorization: Bearer {{accessToken}}`"
+          },
+          "response": [
+            {
+              "name": "200 OK - Profile Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"userId\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"email\": \"farmer@example.com\",\n  \"fullName\": \"Ramesh Patel\",\n  \"authProvider\": \"LOCAL\",\n  \"pictureUrl\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Profile Full Name",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ramesh V. Patel\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Updates profile details for the authenticated user.\n\n### Request Body\n- `fullName` (string, required): New full name (max 100 chars)"
+          },
+          "response": [
+            {
+              "name": "200 OK - Profile Updated",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Ramesh V. Patel\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "me"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"userId\": \"7c9e6679-7425-40de-944b-e07fc1f90ae7\",\n  \"email\": \"farmer@example.com\",\n  \"fullName\": \"Ramesh V. Patel\",\n  \"authProvider\": \"LOCAL\",\n  \"pictureUrl\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "Fetches current farmer preferences including UI localization language and notification alerts."
+          },
+          "response": [
+            {
+              "name": "200 OK - Preferences",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/me/preferences",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "me",
+                    "preferences"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"language\": \"en\",\n  \"notificationsEnabled\": true,\n  \"emailUpdatesEnabled\": false\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update User Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"hi\",\n  \"notificationsEnabled\": true,\n  \"emailUpdatesEnabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/preferences",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "preferences"
+              ]
+            },
+            "description": "Updates language and notification settings.\n\n### Request Body\n- `language` (string): Language code, e.g., `\"en\"` (English) or `\"hi\"` (Hindi)\n- `notificationsEnabled` (boolean): In-app push notification alerts\n- `emailUpdatesEnabled` (boolean): Email alerts for crop reports"
+          },
+          "response": [
+            {
+              "name": "200 OK - Preferences Saved",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"language\": \"hi\",\n  \"notificationsEnabled\": true,\n  \"emailUpdatesEnabled\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/users/me/preferences",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "users",
+                    "me",
+                    "preferences"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"language\": \"hi\",\n  \"notificationsEnabled\": true,\n  \"emailUpdatesEnabled\": true\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Health & Diagnostics",
+      "description": "Health check probes and API specification endpoints for uptime monitoring and client integration.",
+      "item": [
+        {
+          "name": "Backend Service Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Standard service health check endpoint for load balancers and container orchestrators."
+          },
+          "response": [
+            {
+              "name": "200 OK - UP",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Spring Actuator Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "Spring Boot Actuator liveness and readiness probe."
+          },
+          "response": [
+            {
+              "name": "200 OK - Actuator Status",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/actuator/health",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "actuator",
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "OpenAPI 3.0 Specification",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/docs/openapi.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "docs",
+                "openapi.json"
+              ]
+            },
+            "description": "Returns machine-readable OpenAPI 3.0 specification in JSON format."
+          },
+          "response": [
+            {
+              "name": "200 OK - OpenAPI JSON",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/docs/openapi.json",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "docs",
+                    "openapi.json"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"openapi\": \"3.0.3\",\n  \"info\": {\n    \"title\": \"Local Crop Disease Detector API\",\n    \"version\": \"1.0.0\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Direct ML Service Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "https://gdg-grp-task-ml-2.onrender.com/api/v1/health",
+              "protocol": "https",
+              "host": [
+                "gdg-grp-task-ml-2",
+                "onrender",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Pings the live ONNX machine learning microservice deployed on Render directly."
+          },
+          "response": [
+            {
+              "name": "200 OK - ML Service Healthy",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "https://gdg-grp-task-ml-2.onrender.com/api/v1/health",
+                  "protocol": "https",
+                  "host": [
+                    "gdg-grp-task-ml-2",
+                    "onrender",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "health"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"healthy\",\n  \"model_loaded\": true,\n  \"model_version\": \"mobilenetv3_large_v1\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

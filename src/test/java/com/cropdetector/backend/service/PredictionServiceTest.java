@@ -70,6 +70,16 @@ class PredictionServiceTest {
     }
 
     @Test
+    void predictsDiseaseWithoutCropHintResolvesCrop() {
+        PredictionDtos.PredictionResponse response =
+            predictionService.predict(null, validLeafImage, null);
+
+        assertNotNull(response);
+        assertNotNull(response.crop(), "Crop should not be null when crop hint is omitted");
+        assertFalse(response.crop().isBlank());
+    }
+
+    @Test
     void recordsPredictionHistoryForAuthenticatedUser() {
         UUID userId = UUID.randomUUID();
 

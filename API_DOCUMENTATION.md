@@ -8,6 +8,8 @@ This document defines the complete RESTful API contract for the **Crop Disease D
 
 - **Local Development:** `http://localhost:8080/api/v1`
 - **Interactive Web Docs:** `http://localhost:8080/api/v1/docs`
+- **Postman Collection (v2.1):** [`postman/Crop_Disease_Detector_API.postman_collection.json`](file:///f:/gdg/crop/postman/Crop_Disease_Detector_API.postman_collection.json) or live at `http://localhost:8080/api/v1/docs/postman.json`
+- **Postman Documentation & Guide:** [POSTMAN_DOCUMENTATION.md](file:///f:/gdg/crop/POSTMAN_DOCUMENTATION.md)
 - **OpenAPI 3.0 Specification:** `http://localhost:8080/api/v1/docs/openapi.json`
 - **Health Check:** `http://localhost:8080/actuator/health`
 

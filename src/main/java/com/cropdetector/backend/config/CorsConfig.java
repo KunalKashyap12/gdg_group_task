@@ -15,7 +15,7 @@ public class CorsConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource(
-        @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+        @Value("${app.cors.allowed-origins:https://teamtask-frontend-sigma.vercel.app,http://localhost:3000}")
         String origins
     ) {
         CorsConfiguration config = new CorsConfiguration();

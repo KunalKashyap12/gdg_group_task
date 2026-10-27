@@ -66,9 +66,19 @@ public class PredictionService {
             guidance.add(result.disclaimer());
         }
 
+        // Resolve crop: prefer user input if provided, otherwise fallback to the ML detected crop
+        String resolvedCrop = (crop != null && !crop.isBlank())
+            ? crop.trim()
+            : (result.crop() != null && !result.crop().isBlank() ? result.crop().trim() : null);
+
+        // Fallback: if still null, try extracting crop name from the predictedClass label (e.g. "Potato___Late_blight" -> "Potato")
+        if ((resolvedCrop == null || resolvedCrop.isBlank()) && result.predictedClass() != null && result.predictedClass().contains("___")) {
+            resolvedCrop = result.predictedClass().split("___")[0].trim();
+        }
+
         Prediction prediction = new Prediction(
             userId,
-            crop == null || crop.isBlank() ? null : crop.trim(),
+            resolvedCrop,
             result.predictedClass(),
             result.confidence(),
             status,
