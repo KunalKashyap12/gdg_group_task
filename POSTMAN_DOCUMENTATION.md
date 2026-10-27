@@ -1,19 +1,5 @@
 
 
-## 🔄 Automated Workflow & Token Chaining
-
-The collection uses Postman **Test Scripts** to automatically capture and forward variables across requests:
-
-```mermaid
-graph TD
-    A["POST /api/v1/auth/register or /login"] -->|Extracts accessToken| B["pm.environment.set('accessToken', ...)"]
-    B --> C["Inherited by Collection Auth: Bearer {{accessToken}}"]
-    C --> D["POST /api/v1/predictions (Upload Leaf)"]
-    D -->|Extracts predictionId| E["pm.environment.set('predictionId', ...)"]
-    E --> F["GET /api/v1/predictions/{{predictionId}}"]
-    E --> G["DELETE /api/v1/predictions/{{predictionId}}"]
-```
-
 ### 1. Automated Access Token (`accessToken`)
 When you send:
 - `POST /api/v1/auth/register` or
@@ -182,4 +168,3 @@ When you submit an image via `POST /api/v1/predictions`, Postman stores the retu
 
 ---
 
- |

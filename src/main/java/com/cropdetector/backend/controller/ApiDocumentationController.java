@@ -2,11 +2,7 @@ package com.cropdetector.backend.controller;
 
 import java.util.Map;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,15 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/docs")
 public class ApiDocumentationController {
-
-    @GetMapping(value = "/postman.json", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Resource> getPostmanCollection() {
-        Resource resource = new ClassPathResource("static/postman_collection.json");
-        return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Crop_Disease_Detector_API.postman_collection.json\"")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(resource);
-    }
 
     @GetMapping(value = "/openapi.json", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> getOpenApiSpec() {
@@ -34,11 +21,10 @@ public class ApiDocumentationController {
                 "description", "RESTful backend service for leaf image disease detection, farmer guidance, authentication, and history."
             ),
             "servers", java.util.List.of(
-                Map.of("url", "http://localhost:8080", "description", "Local Development Server"),
-                Map.of("url", "https://crop-backend-r14q.onrender.com", "description", "Production Render Server")
+                Map.of("url", "http://localhost:8080", "description", "Local Development Server")
             ),
-            "paths", Map.ofEntries(
-                Map.entry("/api/crops/diagnose", Map.of(
+            "paths", Map.of(
+                "/api/crops/diagnose", Map.of(
                     "post", Map.of(
                         "summary", "Direct Leaf Diagnosis via Live ML Microservice",
                         "description", "Public endpoint forwarding leaf photo to live ONNX microservice. Returns diagnosis, confidence, top-k candidate list, and agricultural disclaimer.",
@@ -47,8 +33,8 @@ public class ApiDocumentationController {
                             "400", Map.of("description", "Missing or empty image file")
                         )
                     )
-                )),
-                Map.entry("/api/v1/predictions", Map.of(
+                ),
+                "/api/v1/predictions", Map.of(
                     "post", Map.of(
                         "summary", "Upload leaf image and predict disease",
                         "description", "Accepts JPEG/PNG leaf image up to 5MB and optional crop name. Returns disease class, confidence, and general guidance.",
@@ -84,75 +70,57 @@ public class ApiDocumentationController {
                         ),
                         "responses", Map.of("200", Map.of("description", "Paginated history"))
                     )
-                )),
-                Map.entry("/api/v1/predictions/{id}", Map.of(
-                    "get", Map.of(
-                        "summary", "Get prediction by UUID",
-                        "responses", Map.of("200", Map.of("description", "Prediction details"))
-                    ),
-                    "delete", Map.of(
-                        "summary", "Delete prediction by UUID",
-                        "responses", Map.of("204", Map.of("description", "Successfully deleted"))
-                    )
-                )),
-                Map.entry("/api/v1/crops", Map.of(
+                ),
+                "/api/v1/crops", Map.of(
                     "get", Map.of(
                         "summary", "List all supported crops",
                         "description", "Returns supported crops, known disease classes, photographic capture tips, and preventive management tips.",
                         "responses", Map.of("200", Map.of("description", "List of crops"))
                     )
-                )),
-                Map.entry("/api/v1/crops/{id}", Map.of(
-                    "get", Map.of(
-                        "summary", "Get crop metadata and photography tips",
-                        "responses", Map.of("200", Map.of("description", "Crop details"))
-                    )
-                )),
-                Map.entry("/api/v1/auth/register", Map.of(
+                ),
+                "/api/v1/auth/register", Map.of(
                     "post", Map.of(
                         "summary", "Register new farmer/user account",
                         "responses", Map.of("201", Map.of("description", "User registered, returns JWT token"))
                     )
-                )),
-                Map.entry("/api/v1/auth/login", Map.of(
+                ),
+                "/api/v1/auth/login", Map.of(
                     "post", Map.of(
                         "summary", "Authenticate and obtain JWT token",
                         "responses", Map.of("200", Map.of("description", "JWT token and user info"))
                     )
-                )),
-                Map.entry("/api/v1/auth/google", Map.of(
+                ),
+                "/api/v1/auth/google", Map.of(
                     "post", Map.of(
                         "summary", "Authenticate or register via Google ID token",
-                        "description", "Exchanges a Google ID token for standard Bearer JWT.",
-                        "responses", Map.of("200", Map.of("description", "Authentication successful"))
+                        "description", "Exchanges a Google ID token (from Google Sign-In or GIS) for a standard application Bearer JWT.",
+                        "requestBody", Map.of(
+                            "required", true,
+                            "content", Map.of(
+                                "application/json", Map.of(
+                                    "schema", Map.of(
+                                        "type", "object",
+                                        "properties", Map.of(
+                                            "idToken", Map.of("type", "string", "description", "Google ID token JWT"),
+                                            "credential", Map.of("type", "string", "description", "Google Identity Services credential token")
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        "responses", Map.of(
+                            "200", Map.of("description", "Authentication successful, returns JWT Bearer token"),
+                            "400", Map.of("description", "Missing ID token"),
+                            "401", Map.of("description", "Invalid, expired, or audience-mismatched Google token")
+                        )
                     )
-                )),
-                Map.entry("/api/v1/users/me", Map.of(
+                ),
+                "/api/v1/users/me", Map.of(
                     "get", Map.of(
                         "summary", "Get current user profile",
                         "responses", Map.of("200", Map.of("description", "User profile"))
-                    ),
-                    "patch", Map.of(
-                        "summary", "Update user profile name",
-                        "responses", Map.of("200", Map.of("description", "Profile updated"))
                     )
-                )),
-                Map.entry("/api/v1/users/me/preferences", Map.of(
-                    "get", Map.of(
-                        "summary", "Get user notification and language preferences",
-                        "responses", Map.of("200", Map.of("description", "User preferences"))
-                    ),
-                    "put", Map.of(
-                        "summary", "Update user preferences",
-                        "responses", Map.of("200", Map.of("description", "Preferences updated"))
-                    )
-                )),
-                Map.entry("/api/v1/health", Map.of(
-                    "get", Map.of(
-                        "summary", "Health check status",
-                        "responses", Map.of("200", Map.of("description", "Service status UP"))
-                    )
-                ))
+                )
             )
         );
     }
@@ -256,14 +224,7 @@ public class ApiDocumentationController {
                     <header>
                         <h1>🌱 Crop Disease Detector API</h1>
                         <p class="subtitle">Secure REST API connecting farmers, mobile/web clients, and ML inference service.</p>
-                        <div style="margin-top: 1rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                            <a href="/api/v1/docs/postman.json" download="Crop_Disease_Detector_API.postman_collection.json" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #ff6c37; color: #ffffff; padding: 0.5rem 1.1rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                                <span>🚀</span> Download Postman Collection (v2.1)
-                            </a>
-                            <a href="/api/v1/docs/openapi.json" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; padding: 0.5rem 1.1rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
-                                <span>📄</span> View OpenAPI 3.0 JSON Spec &rarr;
-                            </a>
-                        </div>
+                        <p style="margin-top: 0.5rem;"><a href="/api/v1/docs/openapi.json" style="color: var(--accent);">View Raw OpenAPI 3.0 JSON Specification &rarr;</a></p>
                     </header>
 
                     <div class="meta-grid">
