@@ -41,6 +41,9 @@ public class AppUser implements UserDetails {
     @Column(name = "picture_url", length = 500)
     private String pictureUrl;
 
+    @Column(name = "email_verified")
+    private Boolean emailVerified = false;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -50,6 +53,7 @@ public class AppUser implements UserDetails {
         this.email = email;
         this.passwordHash = passwordHash;
         this.authProvider = "LOCAL";
+        this.emailVerified = false;
     }
 
     public AppUser(String email, String fullName, String authProvider, String googleSub, String pictureUrl) {
@@ -58,12 +62,14 @@ public class AppUser implements UserDetails {
         this.authProvider = authProvider != null ? authProvider : "LOCAL";
         this.googleSub = googleSub;
         this.pictureUrl = pictureUrl;
+        this.emailVerified = "GOOGLE".equalsIgnoreCase(authProvider);
     }
 
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = Instant.now();
         if (authProvider == null) authProvider = "LOCAL";
+        if (emailVerified == null) emailVerified = false;
     }
 
     public UUID getId() { return id; }
@@ -73,6 +79,7 @@ public class AppUser implements UserDetails {
     public String getAuthProvider() { return authProvider; }
     public String getGoogleSub() { return googleSub; }
     public String getPictureUrl() { return pictureUrl; }
+    public Boolean getEmailVerified() { return emailVerified != null && emailVerified; }
     public Instant getCreatedAt() { return createdAt; }
 
     public void setFullName(String fullName) {
@@ -95,11 +102,15 @@ public class AppUser implements UserDetails {
         this.pictureUrl = pictureUrl;
     }
 
+    public void setEmailVerified(Boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
     @Override
     public String getUsername() { return email; }
 
     @Override
-    public String getPassword() { return passwordHash; }
+    public String getPassword() { return passwordHash != null ? passwordHash : ""; }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

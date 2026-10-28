@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/predictions")
+@RequestMapping({"/api/v1/predictions", "/v1/predictions"})
 public class PredictionController {
 
     private final PredictionService predictionService;
@@ -24,18 +24,23 @@ public class PredictionController {
         this.predictionService = predictionService;
     }
 
-    @PostMapping(consumes = "multipart/form-data")
+    @PostMapping(value = {"", "/"}, consumes = "multipart/form-data")
     @ResponseStatus(HttpStatus.CREATED)
     public PredictionDtos.PredictionResponse predict(
         @AuthenticationPrincipal AppUser user,
-        @RequestPart("image") MultipartFile image,
+        @RequestPart(value = "image", required = false) MultipartFile image,
+        @RequestPart(value = "file", required = false) MultipartFile file,
         @RequestParam(required = false) String crop
     ) {
+        MultipartFile targetImage = (image != null && !image.isEmpty()) ? image : file;
+        if (targetImage == null || targetImage.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_IMAGE", "Please upload a leaf image.");
+        }
         UUID userId = user != null ? user.getId() : null;
-        return predictionService.predict(userId, image, crop);
+        return predictionService.predict(userId, targetImage, crop);
     }
 
-    @GetMapping
+    @GetMapping(value = {"", "/"})
     public Page<PredictionDtos.PredictionResponse> history(
         @AuthenticationPrincipal AppUser user,
         @RequestParam(defaultValue = "0") int page,

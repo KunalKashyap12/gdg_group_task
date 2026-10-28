@@ -56,11 +56,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/register",
-                                 "/api/v1/auth/login",
-                                 "/api/v1/auth/google").permitAll()
-                .requestMatchers("/api/crops/**", "/api/v1/crops/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/v1/predictions").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/api/crops/**",
+                                 "/api/v1/crops/**",
+                                 "/api/v1/predict",
+                                 "/api/v1/predict/**",
+                                 "/v1/predict",
+                                 "/v1/predict/**",
+                                 "/api/predict",
+                                 "/api/predict/**",
+                                 "/predict",
+                                 "/predict/**").permitAll()
+                .requestMatchers(HttpMethod.POST,
+                                 "/api/v1/predictions",
+                                 "/api/v1/predictions/**",
+                                 "/v1/predictions",
+                                 "/v1/predictions/**").permitAll()
                 .requestMatchers("/api/v1/docs/**",
                                  "/api/v1/health",
                                  "/v3/api-docs/**",

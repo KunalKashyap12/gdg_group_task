@@ -37,6 +37,8 @@ Tokens are valid for **1 hour** by default and can be obtained via `/api/v1/auth
 | `GET` | `/api/v1/crops/{cropId}` | **Public** | Get details, capture tips & guidance for a specific crop |
 | `POST` | `/api/v1/auth/register` | **Public** | Register new farmer account |
 | `POST` | `/api/v1/auth/login` | **Public** | Authenticate existing user |
+| `POST` | `/api/v1/auth/otp/send` | **Public** | Send 6-digit OTP verification code to email (alias: `/api/v1/auth/send-otp`) |
+| `POST` | `/api/v1/auth/otp/verify` | **Public** | Verify OTP & authenticate/register, returns JWT (alias: `/api/v1/auth/verify-otp`) |
 | `POST` | `/api/v1/auth/google` | **Public** | Authenticate or register via Google ID token (SPA / Mobile) |
 | `GET` | `/api/v1/users/me` | **Authenticated** | Get authenticated user profile |
 | `PATCH` | `/api/v1/users/me` | **Authenticated** | Update user profile full name |
@@ -234,6 +236,54 @@ Fetch a specific crop's metadata and guidelines (e.g., `/api/v1/crops/potato`, `
   "tokenType": "Bearer",
   "expiresInSeconds": 3600,
   "userId": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+  "email": "farmer@example.com"
+}
+```
+
+### `POST /api/v1/auth/otp/send` (or `/api/v1/auth/send-otp`)
+Generates a secure 6-digit numeric OTP verification code, saves it to the `otp_verifications` database table, and sends it to the user's email.
+- **Rate limiting:** Requests are rate-limited with a 30-second cooldown per email to prevent spam.
+- **Expiration:** Codes expire after 5 minutes (300 seconds).
+- **Testing:** In development mode, the OTP is printed in application logs and returned in the JSON response for easy frontend / Postman testing.
+
+#### Request Body
+```json
+{
+  "email": "farmer@example.com",
+  "purpose": "LOGIN"
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "status": "success",
+  "message": "Verification code sent successfully to farmer@example.com",
+  "email": "farmer@example.com",
+  "expiresInSeconds": 300,
+  "otp": "498647"
+}
+```
+
+### `POST /api/v1/auth/otp/verify` (or `/api/v1/auth/verify-otp`)
+Verifies the 6-digit OTP code. Automatically registers new users (if no account exists) or authenticates existing users, marks `email_verified = true`, saves records to `app_users` and `user_preferences` in PostgreSQL, and returns a standard JWT Bearer access token.
+
+#### Request Body
+```json
+{
+  "email": "farmer@example.com",
+  "otp": "498647",
+  "fullName": "Ramesh Patel"
+}
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzM4NCJ9...",
+  "tokenType": "Bearer",
+  "expiresInSeconds": 3600,
+  "userId": "76272862-3334-41dc-a42a-f5f5c010df9f",
   "email": "farmer@example.com"
 }
 ```

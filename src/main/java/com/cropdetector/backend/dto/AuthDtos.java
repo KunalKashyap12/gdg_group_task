@@ -52,6 +52,37 @@ public final class AuthDtos {
         }
     }
 
+    public record SendOtpRequest(
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        @Size(max = 254)
+        String email,
+
+        String purpose
+    ) {}
+
+    public record VerifyOtpRequest(
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        @Size(max = 254)
+        String email,
+
+        @NotBlank(message = "OTP code is required")
+        @Size(min = 4, max = 10, message = "OTP must be between 4 and 10 digits")
+        String otp,
+
+        @Size(max = 100)
+        String fullName
+    ) {}
+
+    public record OtpResponse(
+        String status,
+        String message,
+        String email,
+        long expiresInSeconds,
+        String otp
+    ) {}
+
     public record UpdateProfileRequest(
         @NotBlank @Size(max = 100) String fullName
     ) {}

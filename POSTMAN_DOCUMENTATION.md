@@ -33,7 +33,37 @@ When you submit an image via `POST /api/v1/predictions`, Postman stores the retu
 |---|---|---|---|---|
 | **Register Farmer User** | `POST` | `/api/v1/auth/register` | None | Registers account (`email`, `password`, `fullName`). Auto-saves JWT. |
 | **Login User** | `POST` | `/api/v1/auth/login` | None | Authenticates with `email` and `password`. Auto-saves JWT. |
+| **Request OTP Code** | `POST` | `/api/v1/auth/otp/send` | None | Sends 6-digit OTP code to email. (Also supports `/send-otp`). |
+| **Verify OTP & Login/Register** | `POST` | `/api/v1/auth/otp/verify` | None | Verifies OTP code, auto-registers/logs in, auto-saves JWT. (Also `/verify-otp`). |
 | **Google Sign-In Exchange** | `POST` | `/api/v1/auth/google` | None | Exchanges Google ID token for standard JWT. |
+
+#### Sample Request Body: Request OTP Code (`POST /api/v1/auth/otp/send`)
+```json
+{
+  "email": "farmer@example.com",
+  "purpose": "LOGIN"
+}
+```
+
+#### Sample Response (`200 OK`):
+```json
+{
+  "status": "success",
+  "message": "Verification code sent successfully to farmer@example.com",
+  "email": "farmer@example.com",
+  "expiresInSeconds": 300,
+  "otp": "849201"
+}
+```
+
+#### Sample Request Body: Verify OTP (`POST /api/v1/auth/otp/verify`)
+```json
+{
+  "email": "farmer@example.com",
+  "otp": "849201",
+  "fullName": "Ramesh Patel"
+}
+```
 
 #### Sample Request Body: Registration
 ```json

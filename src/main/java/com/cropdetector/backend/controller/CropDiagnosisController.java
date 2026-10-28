@@ -17,14 +17,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping({"/api/crops", "/api/v1/crops"})
 @CrossOrigin(origins = "*")
 public class CropDiagnosisController {
 
@@ -42,11 +43,29 @@ public class CropDiagnosisController {
 
     /**
      * Public endpoint for frontend / mobile app to upload leaf photo.
-     * POST /api/crops/diagnose
-     * POST /api/v1/crops/diagnose
+     * Supports:
+     * - POST /api/crops/diagnose
+     * - POST /api/v1/crops/diagnose
+     * - POST /api/v1/predict (and /api/v1/predict/)
+     * - POST /v1/predict (and /v1/predict/)
+     * - POST /predict (and /predict/)
      * Automatically saves diagnosis history into database.
      */
-    @PostMapping(value = "/diagnose", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+        value = {
+            "/api/crops/diagnose",
+            "/api/v1/crops/diagnose",
+            "/api/v1/predict",
+            "/api/v1/predict/",
+            "/v1/predict",
+            "/v1/predict/",
+            "/api/predict",
+            "/api/predict/",
+            "/predict",
+            "/predict/"
+        },
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<CropPredictionResponse> diagnoseLeaf(
             @AuthenticationPrincipal AppUser user,
             @RequestParam(value = "image", required = false) MultipartFile image,
@@ -106,5 +125,22 @@ public class CropDiagnosisController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping(value = {
+        "/api/v1/predict",
+        "/api/v1/predict/",
+        "/v1/predict",
+        "/v1/predict/",
+        "/api/predict",
+        "/api/predict/",
+        "/predict",
+        "/predict/"
+    })
+    public ResponseEntity<Map<String, String>> predictInfo() {
+        return ResponseEntity.ok(Map.of(
+            "status", "UP",
+            "message", "Crop leaf disease diagnosis endpoint. Submit a POST request with multipart/form-data containing 'image' and optional 'crop'."
+        ));
     }
 }

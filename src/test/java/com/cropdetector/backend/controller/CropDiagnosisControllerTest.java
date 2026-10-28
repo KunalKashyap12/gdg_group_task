@@ -100,4 +100,31 @@ class CropDiagnosisControllerTest {
             .andExpect(jsonPath("$.status").isNotEmpty())
             .andExpect(jsonPath("$.prediction.crop").isNotEmpty());
     }
+
+    @Test
+    void postDiagnoseUnderV1PredictEndpointsWorkWithoutAuth() throws Exception {
+        // Test /v1/predict/
+        mockMvc.perform(multipart("/v1/predict/")
+                .file(validLeafImage)
+                .param("crop", "Tomato"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").isNotEmpty())
+            .andExpect(jsonPath("$.prediction.crop").isNotEmpty());
+
+        // Test /api/v1/predict/
+        mockMvc.perform(multipart("/api/v1/predict/")
+                .file(validLeafImage)
+                .param("crop", "Tomato"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").isNotEmpty())
+            .andExpect(jsonPath("$.prediction.crop").isNotEmpty());
+
+        // Test /api/v1/predict
+        mockMvc.perform(multipart("/api/v1/predict")
+                .file(validLeafImage)
+                .param("crop", "Tomato"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").isNotEmpty())
+            .andExpect(jsonPath("$.prediction.crop").isNotEmpty());
+    }
 }

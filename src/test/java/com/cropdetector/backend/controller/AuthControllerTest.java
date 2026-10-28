@@ -182,4 +182,58 @@ class AuthControllerTest {
             .andExpect(status().isUnauthorized())
             .andExpect(jsonPath("$.code").value("INVALID_GOOGLE_TOKEN"));
     }
+
+    @Test
+    void sendOtpAndVerifyOtpEndpointsWorkEndToEnd() throws Exception {
+        String sendJson = """
+            {
+                "email": "farmer.controller@example.com",
+                "purpose": "LOGIN"
+            }
+            """;
+
+        var sendResult = mockMvc.perform(post("/api/v1/auth/otp/send")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(sendJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.email").value("farmer.controller@example.com"))
+            .andExpect(jsonPath("$.otp").isNotEmpty())
+            .andReturn();
+
+        String responseBody = sendResult.getResponse().getContentAsString();
+        String otpCode = responseBody.replaceAll(".*\"otp\":\"([^\"]+)\".*", "$1");
+
+        String verifyJson = String.format("""
+            {
+                "email": "farmer.controller@example.com",
+                "otp": "%s",
+                "fullName": "Controller Farmer"
+            }
+            """, otpCode);
+
+        mockMvc.perform(post("/api/v1/auth/otp/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(verifyJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").isNotEmpty())
+            .andExpect(jsonPath("$.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.email").value("farmer.controller@example.com"));
+    }
+
+    @Test
+    void sendOtpAliasEndpointsWork() throws Exception {
+        String sendJson = """
+            {
+                "email": "alias.farmer@example.com"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/send-otp")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(sendJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.email").value("alias.farmer@example.com"));
+    }
 }

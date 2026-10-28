@@ -45,4 +45,18 @@ public class AuthController {
         }
         return authService.loginWithGoogle(token);
     }
+
+    @PostMapping({"/otp/send", "/send-otp"})
+    public AuthDtos.OtpResponse sendOtp(
+        @Valid @RequestBody AuthDtos.SendOtpRequest request
+    ) {
+        return authService.sendOtp(request);
+    }
+
+    @PostMapping({"/otp/verify", "/verify-otp"})
+    public AuthDtos.AuthResponse verifyOtp(
+        @Valid @RequestBody AuthDtos.VerifyOtpRequest request
+    ) {
+        return authService.verifyOtp(request);
+    }
 }

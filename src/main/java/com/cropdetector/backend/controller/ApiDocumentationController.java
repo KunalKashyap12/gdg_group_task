@@ -115,6 +115,58 @@ public class ApiDocumentationController {
                         )
                     )
                 ),
+                "/api/v1/auth/otp/send", Map.of(
+                    "post", Map.of(
+                        "summary", "Request OTP Verification Code",
+                        "description", "Sends a 6-digit one-time password to the specified email address for login or registration.",
+                        "requestBody", Map.of(
+                            "required", true,
+                            "content", Map.of(
+                                "application/json", Map.of(
+                                    "schema", Map.of(
+                                        "type", "object",
+                                        "required", java.util.List.of("email"),
+                                        "properties", Map.of(
+                                            "email", Map.of("type", "string", "example", "farmer@example.com"),
+                                            "purpose", Map.of("type", "string", "example", "LOGIN")
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        "responses", Map.of(
+                            "200", Map.of("description", "OTP sent successfully"),
+                            "429", Map.of("description", "Rate limited - please wait before resending")
+                        )
+                    )
+                ),
+                "/api/v1/auth/otp/verify", Map.of(
+                    "post", Map.of(
+                        "summary", "Verify OTP and Authenticate",
+                        "description", "Verifies the 6-digit code. Automatically registers new users or logs in existing users, returning a JWT token.",
+                        "requestBody", Map.of(
+                            "required", true,
+                            "content", Map.of(
+                                "application/json", Map.of(
+                                    "schema", Map.of(
+                                        "type", "object",
+                                        "required", java.util.List.of("email", "otp"),
+                                        "properties", Map.of(
+                                            "email", Map.of("type", "string", "example", "farmer@example.com"),
+                                            "otp", Map.of("type", "string", "example", "123456"),
+                                            "fullName", Map.of("type", "string", "example", "Ramesh Patel")
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        "responses", Map.of(
+                            "200", Map.of("description", "OTP verified, returns JWT Bearer token"),
+                            "400", Map.of("description", "Invalid or expired OTP code"),
+                            "429", Map.of("description", "Too many failed attempts")
+                        )
+                    )
+                ),
                 "/api/v1/users/me", Map.of(
                     "get", Map.of(
                         "summary", "Get current user profile",

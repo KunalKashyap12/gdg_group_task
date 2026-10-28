@@ -28,6 +28,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final com.cropdetector.backend.security.GoogleTokenVerifier googleTokenVerifier;
+    private final OtpService otpService;
 
     public AuthService(
         UserRepository users,
@@ -35,7 +36,8 @@ public class AuthService {
         PasswordEncoder passwordEncoder,
         AuthenticationManager authenticationManager,
         JwtService jwtService,
-        com.cropdetector.backend.security.GoogleTokenVerifier googleTokenVerifier
+        com.cropdetector.backend.security.GoogleTokenVerifier googleTokenVerifier,
+        OtpService otpService
     ) {
         this.users = users;
         this.preferences = preferences;
@@ -43,6 +45,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.otpService = otpService;
     }
 
     @Transactional
@@ -141,6 +144,54 @@ public class AuthService {
                 payload.sub(),
                 payload.picture()
             );
+
+            try {
+                user = users.saveAndFlush(user);
+            } catch (DataIntegrityViolationException ex) {
+                user = users.findByEmail(email)
+                    .orElseThrow(() -> new com.cropdetector.backend.exception.ApiException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "USER_CREATION_FAILED",
+                        "Failed to initialize user account."));
+            }
+
+            preferences.save(new UserPreferences(user.getId()));
+        }
+
+        return createResponse(user);
+    }
+
+    @Transactional
+    public AuthDtos.OtpResponse sendOtp(AuthDtos.SendOtpRequest request) {
+        String email = normalizeEmail(request.email());
+        String purpose = request.purpose() != null ? request.purpose() : "LOGIN";
+        return otpService.generateAndSendOtp(email, purpose);
+    }
+
+    @Transactional
+    public AuthDtos.AuthResponse verifyOtp(AuthDtos.VerifyOtpRequest request) {
+        String email = normalizeEmail(request.email());
+        otpService.verifyOtp(email, request.otp());
+
+        AppUser user = users.findByEmail(email).orElse(null);
+
+        if (user != null) {
+            if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+                user.setEmailVerified(true);
+                user = users.save(user);
+            }
+        } else {
+            String fullName = (request.fullName() != null && !request.fullName().isBlank())
+                ? request.fullName().trim()
+                : email.split("@")[0];
+
+            user = new AppUser(
+                email,
+                fullName,
+                "OTP",
+                null,
+                null
+            );
+            user.setEmailVerified(true);
 
             try {
                 user = users.saveAndFlush(user);

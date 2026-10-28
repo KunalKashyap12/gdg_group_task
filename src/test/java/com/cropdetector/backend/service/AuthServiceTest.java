@@ -186,4 +186,74 @@ class AuthServiceTest {
         assertEquals("OAUTH_USER_NO_PASSWORD", ex.getCode());
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
     }
+
+    @Test
+    void sendsOtpSuccessfully() {
+        var response = authService.sendOtp(new AuthDtos.SendOtpRequest("farmer.otp@example.com", "LOGIN"));
+        assertNotNull(response);
+        assertEquals("success", response.status());
+        assertEquals("farmer.otp@example.com", response.email());
+        assertNotNull(response.otp());
+        assertEquals(6, response.otp().length());
+    }
+
+    @Test
+    void verifiesOtpAndRegistersNewUser() {
+        var sendRes = authService.sendOtp(new AuthDtos.SendOtpRequest("new.otp.user@example.com", "REGISTER"));
+        String code = sendRes.otp();
+
+        var verifyRes = authService.verifyOtp(new AuthDtos.VerifyOtpRequest(
+            "new.otp.user@example.com", code, "New OTP Farmer"));
+
+        assertNotNull(verifyRes);
+        assertNotNull(verifyRes.accessToken());
+        assertEquals("new.otp.user@example.com", verifyRes.email());
+
+        AppUser created = userRepository.findByEmail("new.otp.user@example.com").orElse(null);
+        assertNotNull(created);
+        assertEquals("New OTP Farmer", created.getFullName());
+        assertEquals("OTP", created.getAuthProvider());
+        assertTrue(created.getEmailVerified());
+    }
+
+    @Test
+    void verifiesOtpAndLogsInExistingUser() {
+        authService.register(new AuthDtos.RegisterRequest(
+            "existing.otp.user@example.com", "Password123!", "Existing User"));
+
+        var sendRes = authService.sendOtp(new AuthDtos.SendOtpRequest("existing.otp.user@example.com", "LOGIN"));
+        String code = sendRes.otp();
+
+        var verifyRes = authService.verifyOtp(new AuthDtos.VerifyOtpRequest(
+            "existing.otp.user@example.com", code, null));
+
+        assertNotNull(verifyRes);
+        assertEquals("existing.otp.user@example.com", verifyRes.email());
+
+        AppUser user = userRepository.findByEmail("existing.otp.user@example.com").orElse(null);
+        assertNotNull(user);
+        assertTrue(user.getEmailVerified());
+    }
+
+    @Test
+    void rejectsInvalidOtpCode() {
+        authService.sendOtp(new AuthDtos.SendOtpRequest("fail.otp@example.com", "LOGIN"));
+
+        ApiException ex = assertThrows(ApiException.class, () ->
+            authService.verifyOtp(new AuthDtos.VerifyOtpRequest("fail.otp@example.com", "000000", null)));
+
+        assertEquals("INVALID_OTP", ex.getCode());
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
+    }
+
+    @Test
+    void rateLimitsRapidConsecutiveOtpRequests() {
+        authService.sendOtp(new AuthDtos.SendOtpRequest("spam.otp@example.com", "LOGIN"));
+
+        ApiException ex = assertThrows(ApiException.class, () ->
+            authService.sendOtp(new AuthDtos.SendOtpRequest("spam.otp@example.com", "LOGIN")));
+
+        assertEquals("OTP_RATE_LIMITED", ex.getCode());
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, ex.getStatus());
+    }
 }
