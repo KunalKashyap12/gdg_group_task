@@ -27,13 +27,15 @@ public class OtpService {
     private static final int MAX_ATTEMPTS = 5;
 
     private final OtpVerificationRepository otpRepository;
+    private final EmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.otp.mock-response:true}")
     private boolean includeOtpInResponse;
 
-    public OtpService(OtpVerificationRepository otpRepository) {
+    public OtpService(OtpVerificationRepository otpRepository, EmailService emailService) {
         this.otpRepository = otpRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -79,20 +81,27 @@ public class OtpService {
         OtpVerification newOtp = new OtpVerification(normalizedEmail, otpCode, resolvedPurpose, expiresAt);
         otpRepository.save(newOtp);
 
+        // Dispatch real email via EmailService
+        boolean emailSent = emailService.sendOtpEmail(normalizedEmail, otpCode, resolvedPurpose, OTP_EXPIRY_SECONDS);
+
         // Console banner logging for developers/testing
         log.info("================================================================================");
         log.info("[OTP VERIFICATION CODE]");
         log.info("Destination: {}", normalizedEmail);
         log.info("OTP Code:    {}", otpCode);
         log.info("Purpose:     {}", resolvedPurpose);
+        log.info("Email Sent:  {}", emailSent ? "YES (Dispatched via SMTP)" : "NO (Mock / Not configured)");
         log.info("Expires in:  {} seconds (5 minutes)", OTP_EXPIRY_SECONDS);
         log.info("================================================================================");
 
         String otpForResponse = includeOtpInResponse ? otpCode : null;
+        String responseMessage = emailSent
+            ? "Verification code sent to " + normalizedEmail + ". Please check your inbox or spam folder."
+            : "Verification code sent successfully to " + normalizedEmail;
 
         return new AuthDtos.OtpResponse(
             "success",
-            "Verification code sent successfully to " + normalizedEmail,
+            responseMessage,
             normalizedEmail,
             OTP_EXPIRY_SECONDS,
             otpForResponse
